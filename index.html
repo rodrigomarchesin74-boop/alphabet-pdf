@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALPHAbet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body style="font-family: Arial; background: #f5f5f5; padding: 20px;">
+    <div style="max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
+        <h1>ALPHAbet - Gerador de Documentos</h1>
+        <p>Sistema funcionando!</p>
+        
+        <div style="margin: 20px 0;">
+            <label>Nome do Aluno:</label><br>
+            <input type="text" id="student_name" style="width: 100%; padding: 8px;">
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <input type="checkbox" id="regime_grade">
+            <label>Regime de Grade</label>
+        </div>
+        
+        <button onclick="generatePDF()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Gerar PDF
+        </button>
+    </div>
+
+    <script>
+        function generatePDF() {
+            const name = document.getElementById('student_name').value;
+            if (!name) {
+                alert('Digite o nome do aluno!');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text('Regime de Adaptacao/Dependencia', 105, 20, {align: 'center'});
+            doc.text('Programa de Estudo', 105, 30, {align: 'center'});
+            doc.text('Aluno: ' + name, 20, 50);
+            const regime = document.getElementById('regime_grade').checked ? 'Sim' : 'Nao';
+            doc.text('Regime de Grade: ' + regime, 20, 60);
+            doc.save('DP_' + name + '.pdf');
+        }
+    </script>
+</body>
+</html>
