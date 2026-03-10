@@ -94,8 +94,12 @@
                     
                     <div class="subsection">
                         <h3>Prazos Especiais - Tutelados</h3>
+                        <div class="checkbox-group" style="margin-bottom: 15px;">
+                            <input type="checkbox" id="replicar_datas_tutelados" onchange="toggleReplicarDatas()">
+                            <label for="replicar_datas_tutelados">Replicar Datas (usar mesma data de AC para todos)</label>
+                        </div>
                         <div class="grid-2">
-                            <div class="form-group"><label for="AC_prazo_tutelado">AC</label><input type="date" id="AC_prazo_tutelado"></div>
+                            <div class="form-group"><label for="AC_prazo_tutelado">AC</label><input type="date" id="AC_prazo_tutelado" onchange="updateTuteladosDates()"></div>
                             <div class="form-group"><label for="AEX_prazo_tutelado">AEX</label><input type="date" id="AEX_prazo_tutelado"></div>
                             <div class="form-group"><label for="ED_prazo_tutelado">ED</label><input type="date" id="ED_prazo_tutelado"></div>
                             <div class="form-group"><label for="PIM_prazo_tutelado">PIM</label><input type="date" id="PIM_prazo_tutelado"></div>
@@ -305,6 +309,50 @@
             // Auto-marcação implícita através dos checkboxes individuais
         }
         
+        function toggleReplicarDatas() {
+            const checkbox = document.getElementById('replicar_datas_tutelados');
+            const fields = [
+                'AEX_prazo_tutelado', 'ED_prazo_tutelado', 'PIM_prazo_tutelado',
+                'AVA_prazo_tutelado', 'ONLINE_prazo_tutelado', 
+                'ONLINE_ESP_prazo_tutelado', 'OPTATIVA_prazo_tutelado'
+            ];
+            
+            if (checkbox.checked) {
+                // Desabilitar campos e copiar data de AC
+                const acDate = document.getElementById('AC_prazo_tutelado').value;
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    field.value = acDate;
+                    field.disabled = true;
+                    field.style.backgroundColor = '#e9ecef';
+                    field.style.cursor = 'not-allowed';
+                });
+            } else {
+                // Habilitar campos
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    field.disabled = false;
+                    field.style.backgroundColor = '';
+                    field.style.cursor = '';
+                });
+            }
+        }
+        
+        function updateTuteladosDates() {
+            const checkbox = document.getElementById('replicar_datas_tutelados');
+            if (checkbox.checked) {
+                const acDate = document.getElementById('AC_prazo_tutelado').value;
+                const fields = [
+                    'AEX_prazo_tutelado', 'ED_prazo_tutelado', 'PIM_prazo_tutelado',
+                    'AVA_prazo_tutelado', 'ONLINE_prazo_tutelado', 
+                    'ONLINE_ESP_prazo_tutelado', 'OPTATIVA_prazo_tutelado'
+                ];
+                fields.forEach(fieldId => {
+                    document.getElementById(fieldId).value = acDate;
+                });
+            }
+        }
+        
         window.addEventListener('load', function() {
             loadDates();
         });
@@ -323,6 +371,13 @@
                 const elem = document.getElementById(key);
                 if (elem) elem.value = dates[key];
             });
+            
+            // Restaurar estado do checkbox de replicar datas
+            const savedCheckbox = localStorage.getItem('replicar_datas_tutelados');
+            if (savedCheckbox === 'true') {
+                document.getElementById('replicar_datas_tutelados').checked = true;
+                toggleReplicarDatas();
+            }
         }
         
         function saveDates() {
@@ -332,7 +387,12 @@
                 if (elem) dates[key] = elem.value;
             });
             localStorage.setItem('alphabetDates', JSON.stringify(dates));
-            showMessage('✅ Configuração salva!', 'success');
+            
+            // Salvar estado do checkbox de replicar datas
+            const checkbox = document.getElementById('replicar_datas_tutelados');
+            localStorage.setItem('replicar_datas_tutelados', checkbox.checked);
+            
+            showInlineMessage('✅ Configuração salva!', 'success');
         }
         
         function resetDates() {
@@ -342,7 +402,13 @@
                     if (elem) elem.value = DEFAULT_DATES[key];
                 });
                 localStorage.removeItem('alphabetDates');
-                showMessage('✅ Padrões restaurados!', 'success');
+                
+                // Resetar checkbox de replicar datas
+                document.getElementById('replicar_datas_tutelados').checked = false;
+                localStorage.removeItem('replicar_datas_tutelados');
+                toggleReplicarDatas();
+                
+                showInlineMessage('✅ Padrões restaurados!', 'success');
             }
         }
         
@@ -559,6 +625,7 @@
                             details.push('Atenção à plataforma de ACESSO para responder estas disciplinas, que é DIFERENTE das disciplinas AVA.');
                             details.push('Acessar Área do Aluno/Disciplinas On-line.');
                             details.push('Responder TODOS OS MÓDULOS DE QUESTÕES.');
+                            details.push('Para NP1, NP2, SUB e EXAME, agendar as provas de cada disciplina no sistema e realizá-las PRESENCIALMENTE no Laboratório de Informática.');
                             details.push('O aluno deverá realizar o EXAME apenas se a Média Semestral (MS) for inferior a 7,0 (sete).');
                             details.push({ text: 'NP1: de ' + formatDate(dates.NP1_inicio) + ' a ' + formatDate(dates.NP1_fim) + '.', color: [0, 0, 255] });
                             details.push({ text: 'NP2: de ' + formatDate(dates.NP2_inicio) + ' a ' + formatDate(dates.NP2_fim) + '.', color: [0, 128, 0] });
@@ -574,15 +641,17 @@
                         const disciplines = document.getElementById('ONLINE_ESPECIAL_disciplines').value.split('\n').filter(d => d.trim());
                         if (disciplines.length > 0) details.push('Disciplina(s): ' + disciplines.join(', ') + '.');
                         details.push('Acessar Área do Aluno/AVA/Conteúdos Acadêmicos/Minhas Disciplinas.');
-                        details.push('Responder, salvar e ENVIAR TODOS os questionários de TODAS as unidades.');
-                        details.push('A nota dos exercícios realizados será replicada para NP1 e NP2.');
                         if (regimeGrade) {
+                            details.push('Para NP1, responder, salvar e ENVIAR TODOS os questionários de TODAS as unidades.');
+                            details.push('Para NP2, SUB e EXAME, agendar as provas de cada disciplina no sistema e realizá-las PRESENCIALMENTE no Laboratório de Informática.');
                             details.push('O aluno deverá realizar o EXAME apenas se a Média Semestral (MS) for inferior a 7,0 (sete).');
                             details.push({ text: 'NP1: de ' + formatDate(dates.NP1_inicio) + ' a ' + formatDate(dates.NP1_fim) + '.', color: [0, 0, 255] });
                             details.push({ text: 'NP2: de ' + formatDate(dates.NP2_inicio) + ' a ' + formatDate(dates.NP2_fim) + '.', color: [0, 128, 0] });
                             details.push({ text: 'SUB: de ' + formatDate(dates.SUB_inicio) + ' a ' + formatDate(dates.SUB_fim) + '.', color: [255, 140, 0] });
                             details.push({ text: 'EXAME: de ' + formatDate(dates.EXAME_inicio) + ' a ' + formatDate(dates.EXAME_fim) + '.', color: [128, 0, 32] });
                         } else {
+                            details.push('Responder, salvar e ENVIAR TODOS os questionários de TODAS as unidades.');
+                            details.push('A nota dos exercícios realizados será replicada para NP1 e NP2.');
                             details.push('Prazo: ' + formatDate(dates.ONLINE_ESP_prazo_tutelado) + '.');
                         }
                     } else if (task === 'OPTATIVA') {
@@ -593,6 +662,7 @@
                         details.push('Acessar Área do Aluno/AVA/Conteúdos Acadêmicos/Minhas Disciplinas.');
                         details.push('Para NP1, responder, salvar e ENVIAR TODOS os questionários de TODAS as unidades.');
                         if (regimeGrade) {
+                            details.push('Para NP2, SUB e EXAME, agendar as provas de cada disciplina no sistema e realizá-las PRESENCIALMENTE no Laboratório de Informática.');
                             details.push('O aluno deverá realizar o EXAME apenas se a Média Semestral (MS) for inferior a 7,0 (sete).');
                             details.push({ text: 'NP1: de ' + formatDate(dates.NP1_inicio) + ' a ' + formatDate(dates.NP1_fim) + '.', color: [0, 0, 255] });
                             details.push({ text: 'NP2: de ' + formatDate(dates.NP2_inicio) + ' a ' + formatDate(dates.NP2_fim) + '.', color: [0, 128, 0] });
